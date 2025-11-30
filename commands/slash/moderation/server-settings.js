@@ -13,7 +13,7 @@ const {
 } = require('discord.js');
 
 // MongoDB Modelini Çağırıyoruz
-const GuildSettings = require('../../models/GuildSettings');
+const GuildSettings = require('../../../models/GuildSettings');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -359,4 +359,5 @@ module.exports = {
             interaction.client.removeListener('interactionCreate', modalHandler);
         });
     },
+
 };
