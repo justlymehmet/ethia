@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionsBitField, EmbedBuilder } = require('discord.js');
-const GuildSettings = require('../../models/GuildSettings');
+const GuildSettings = require('../../../models/GuildSettings');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -136,4 +136,5 @@ module.exports = {
             await interaction.reply({ embeds: [embed] });
         }
     },
+
 };
