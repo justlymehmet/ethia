@@ -1,4 +1,3 @@
-// models/UserEconomy.js
 const mongoose = require('mongoose');
 
 const schema = new mongoose.Schema({
@@ -7,25 +6,25 @@ const schema = new mongoose.Schema({
     dailyStreak: { type: Number, default: 0 },
     lastDaily: { type: Number, default: 0 },
     lastHunt: { type: Number, default: 0 },
-    lastWork: { type: Number, default: 0 }, // Work komutu için eklendi
+    lastWork: { type: Number, default: 0 },
     lastCookie: { type: Number, default: 0 },
     
-    // Basit Sayaçlar (Map kullanıyoruz ki dinamik olsun)
+    // Basit Sayaçlar
     animals: { type: Map, of: Number, default: {} }, 
     cookies: { type: Number, default: 0 },
 
-    // Envanter (Gemler, Kutular vb.)
+    // Envanter (DETAYLI TANIMLAMA ŞART)
     inventory: [{ 
-        _id: false, // Her eşya için gereksiz ID oluşturmayı engeller
+        _id: false, // Gereksiz ID oluşturmayı engeller
         id: Number, 
         name: String, 
         emoji: String, 
-        type: String, // 'box', 'gem'
-        price: Number, // Shop'tan gelen fiyat
-        desc: String,  // Açıklama
-        category: String, // Gem türü (diamond/heart)
-        tier: Number,     // Gem seviyesi
-        durability: Number, // Gem dayanıklılığı
+        type: String, 
+        price: Number, 
+        desc: String,  
+        category: String, 
+        tier: Number,     
+        durability: Number, 
         count: { type: Number, default: 1 }
     }],
 
@@ -35,7 +34,7 @@ const schema = new mongoose.Schema({
         id: Number, 
         name: String, 
         emoji: String, 
-        type: String, // 'weapon'
+        type: String, 
         price: Number,
         desc: String,
         tier: Number 
@@ -43,11 +42,11 @@ const schema = new mongoose.Schema({
     
     // Takılı Gemler
     activeGems: {
-        diamond: { type: Object, default: null }, // Tier, durability vb. tutar
+        diamond: { type: Object, default: null }, 
         heart: { type: Object, default: null }
     },
 
-    // Checklist (Günlük Görevler)
+    // Checklist
     checklist: {
         date: { type: String, default: '' },
         lootbox: { type: Number, default: 0 },
@@ -63,7 +62,6 @@ const schema = new mongoose.Schema({
         losses: { type: Number, default: 0 }
     },
     
-    // Ekstra İstatistikler
     huntingXp: { type: Number, default: 0 }
 });
 
