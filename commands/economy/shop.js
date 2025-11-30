@@ -1,0 +1,159 @@
+const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ComponentType } = require('discord.js');
+const UserEconomy = require('../../models/UserEconomy');
+
+// --- EMOJİLER ---
+const EMOJIS = {
+    GEM1: '<a:gem1:1444659894098591744>', // Pembe Elmas
+    GEM2: '<a:gem2:1444659918761365554>', // Mavi Elmas
+    GEM3: '<a:gem3:1444659939690811514>', // Gri Elmas
+    GEM4: '<a:gem4:1444659962390384811>', // Beyaz Kalp
+    GEM5: '<a:gem5:1444659982351073320>', // Pembe Kalp
+    GEM6: '<a:gem6:1444659998046027906>'  // Mavi Kalp
+};
+
+// --- MARKET ÜRÜNLERİ ---
+const SHOP_ITEMS = [
+    // SİLAHLAR
+    { id: 1, name: "Sapan", price: 500, emoji: "🪃", type: 'weapon', tier: 1, desc: "Başlangıç silahı." },
+    { id: 2, name: "Yay", price: 2500, emoji: "🏹", type: 'weapon', tier: 2, desc: "Sessiz avcı yayı." },
+    { id: 3, name: "Tüfek", price: 10000, emoji: "🔫", type: 'weapon', tier: 3, desc: "Yüksek hasar gücü." },
+    { id: 4, name: "Keskin Nişancı", price: 50000, emoji: "🔭", type: 'weapon', tier: 4, desc: "Uzak mesafe, kesin sonuç." },
+    { id: 5, name: "Lazer Kılıcı", price: 150000, emoji: "⚔️", type: 'weapon', tier: 5, desc: "Geleceğin teknolojisi. Çok güçlü." },
+    { id: 6, name: "Plazma Topu", price: 500000, emoji: "💠", type: 'weapon', tier: 6, desc: "Yok edici güç. Efsanevi avcılar için." },
+
+    // ELMASLAR
+    { id: 10, name: "Pembe Elmas", price: 1000, emoji: EMOJIS.GEM1, type: 'gem', category: 'diamond', tier: 1, durability: 10, desc: "Şans +%5 (10 Av)" },
+    { id: 11, name: "Mavi Elmas", price: 5000, emoji: EMOJIS.GEM2, type: 'gem', category: 'diamond', tier: 2, durability: 25, desc: "Şans +%15 (25 Av)" },
+    { id: 12, name: "Gri Elmas", price: 20000, emoji: EMOJIS.GEM3, type: 'gem', category: 'diamond', tier: 3, durability: 60, desc: "Şans +%30 (60 Av)" },
+
+    // KALPLER
+    { id: 20, name: "Beyaz Kalp", price: 1500, emoji: EMOJIS.GEM4, type: 'gem', category: 'heart', tier: 1, durability: 15, desc: "XP +%10 (15 Av)" },
+    { id: 21, name: "Pembe Kalp", price: 7000, emoji: EMOJIS.GEM5, type: 'gem', category: 'heart', tier: 2, durability: 35, desc: "XP +%25 (35 Av)" },
+    { id: 22, name: "Mavi Kalp", price: 25000, emoji: EMOJIS.GEM6, type: 'gem', category: 'heart', tier: 3, durability: 80, desc: "XP +%50 (80 Av)" }
+];
+
+module.exports = {
+    name: 'shop',
+    aliases: ['market', 'buy'],
+    description: 'Silahlar ve Gemler satın alırsın.',
+
+    async execute(message, args, client) {
+        const userId = message.author.id;
+        const action = args[0] ? args[0].toLowerCase() : null;
+
+        // 1. Veriyi MongoDB'den Çek
+        let userData = await UserEconomy.findOne({ userId: userId });
+        
+        // --- HESAP KONTROLÜ ---
+        if (!userData) {
+            const warningEmbed = new EmbedBuilder()
+                .setColor('#FF0000')
+                .setDescription(`🚫 **${message.author.username}**, henüz bir hesabın yok!\n\nLütfen önce **et money** yazarak hesap oluştur.`);
+            return message.reply({ embeds: [warningEmbed] });
+        }
+
+        // --- MANUEL SATIN ALMA (et shop buy 10) ---
+        if (action === 'buy' || action === 'al') {
+            const itemId = parseInt(args[1]);
+            const item = SHOP_ITEMS.find(i => i.id === itemId);
+            if (!item) return message.reply('❌ Geçersiz ID.');
+            await buyItem(message, userData, item);
+            return;
+        }
+
+        // --- EMBED OLUŞTURUCU ---
+        const generateEmbed = (currentBalance) => {
+            return new EmbedBuilder()
+                .setTitle('🛒 Silah ve Mühimmat Marketi')
+                .setDescription(`Daha güçlü silahlar = Savaşta daha fazla güç!\n**Bakiyen:** ${currentBalance.toLocaleString()} ET`)
+                .setColor('#2F3136')
+                .addFields(
+                    { name: '⚔️ Silahlar', value: SHOP_ITEMS.filter(i => i.type === 'weapon').map(i => `\`ID:${i.id}\` ${i.emoji} **${i.name}** - ${i.price.toLocaleString()} ET`).join('\n'), inline: true },
+                    { name: '💎 Gemler', value: SHOP_ITEMS.filter(i => i.type === 'gem').map(i => `\`ID:${i.id}\` ${i.emoji} **${i.name}** - ${i.price.toLocaleString()} ET`).join('\n'), inline: true }
+                );
+        };
+
+        // --- SELECT MENU ---
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('shop_menu')
+            .setPlaceholder('Satın almak için seç...');
+
+        SHOP_ITEMS.forEach(item => {
+            selectMenu.addOptions(
+                new StringSelectMenuOptionBuilder()
+                    .setLabel(`${item.name}`)
+                    .setDescription(`${item.price} ET - ${item.desc}`)
+                    .setValue(item.id.toString())
+                    .setEmoji(item.emoji)
+            );
+        });
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+        
+        // İlk mesajı gönder
+        const replyMsg = await message.reply({ 
+            embeds: [generateEmbed(userData.balance)], 
+            components: [row] 
+        });
+
+        // --- COLLECTOR ---
+        const collector = replyMsg.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 60000 });
+
+        collector.on('collect', async i => {
+            if (i.user.id !== userId) return i.reply({ content: 'Bu menü senin değil.', ephemeral: true });
+            
+            const item = SHOP_ITEMS.find(it => it.id === parseInt(i.values[0]));
+            
+            // Veriyi TEKRAR oku (Güncel bakiye için)
+            userData = await UserEconomy.findOne({ userId: userId });
+
+            if (userData.balance < item.price) {
+                return i.reply({ content: `❌ Paran yetmiyor!`, ephemeral: true });
+            }
+
+            // Satın Alma İşlemi
+            userData.balance -= item.price;
+            
+            if (item.type === 'weapon') {
+                if (userData.weapons.find(w => w.id === item.id)) {
+                    userData.balance += item.price; // İade
+                    return i.reply({ content: `🎒 Buna zaten sahipsin!`, ephemeral: true });
+                }
+                userData.weapons.push(item);
+            } else {
+                userData.inventory.push(item);
+            }
+
+            // Kaydet
+            await userData.save();
+            
+            // Kullanıcıya bilgi ver
+            await i.reply({ content: `✅ **${item.name}** satın alındı!`, ephemeral: true });
+
+            // Embed'i güncelle
+            await replyMsg.edit({ 
+                embeds: [generateEmbed(userData.balance)] 
+            });
+        });
+    },
+};
+
+// Manuel satın alma fonksiyonu
+async function buyItem(message, userData, item) {
+    if (userData.balance < item.price) return message.reply('❌ Yetersiz bakiye.');
+    
+    userData.balance -= item.price;
+    
+    if (item.type === 'weapon') {
+        if (userData.weapons.find(w => w.id === item.id)) {
+            userData.balance += item.price;
+            return message.reply('🎒 Zaten sende var.');
+        }
+        userData.weapons.push(item);
+    } else {
+        userData.inventory.push(item);
+    }
+
+    await userData.save();
+    message.reply(`✅ **${item.name}** alındı.`);
+}
