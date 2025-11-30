@@ -14,18 +14,16 @@ const schema = new mongoose.Schema({
     cookies: { type: Number, default: 0 },
 
     // Envanter (DETAYLI TANIMLAMA ŞART)
-    inventory: [{ 
-        _id: false, // Gereksiz ID oluşturmayı engeller
-        id: Number, 
-        name: String, 
-        emoji: String, 
-        type: String, 
-        price: Number, 
-        desc: String,  
-        category: String, 
-        tier: Number,     
-        durability: Number, 
-        count: { type: Number, default: 1 }
+    inventory: [{
+        id: Number,
+        name: String,
+        emoji: String,
+        type: String,
+        price: Number,
+        desc: String,
+        tier: Number,
+        category: String,
+        durability: Number
     }],
 
     // Silahlar
@@ -66,3 +64,4 @@ const schema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('UserEconomy', schema);
+
